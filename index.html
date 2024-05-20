@@ -1,0 +1,126 @@
+<link rel="stylesheet" href="style.css">
+<link href="https://teachablemachine.withgoogle.com/models/GhVhRC0qj/" rel="stylesheet"
+  integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+
+<div class="page-header">
+  <h1>Teachable Machine Image Model</h1>
+</div>
+<button type="button" class="btn btn-primary" id="start" onclick="init()">Start</button>
+<div id="webcam-container"></div>
+<div id="label-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/GhVhRC0qj/";
+
+    let model, webcam, labelContainer, maxPredictions;
+    let squirrelAudio = new Audio('Squirrel1.mp3');
+    let snakeAudio = new Audio('Snake1.mp3');
+    let starlingAudio = new Audio('EuropeanStarling1.mp3');
+    let squirrelTimeout, snakeTimeout, starlingTimeout;
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true;
+        webcam = new tmImage.Webcam(200, 200, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        let squirrelDetected = false;
+        let snakeDetected = false;
+        let starlingDetected = false;
+
+        for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction =
+                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+            labelContainer.childNodes[i].innerHTML = classPrediction;
+
+            if (prediction[i].className === "Squirrels" && prediction[i].probability > 0.90) {
+                squirrelDetected = true;
+                if (!squirrelTimeout) {
+                    console.log("Squirrel detected!");
+                    squirrelTimeout = setTimeout(() => {
+                        console.log("Squirrel detected for 3 seconds!");
+                        squirrelAudio.play().then(() => {
+                            console.log("Squirrel audio played successfully");
+                        }).catch(error => {
+                            console.error("Error playing squirrel audio:", error);
+                        });
+                        squirrelTimeout = null;
+                    }, 500);
+                }
+            } else if (prediction[i].className === "Snek" && prediction[i].probability > 0.90) {
+                snakeDetected = true;
+                if (!snakeTimeout) {
+                    console.log("Snake detected!");
+                    snakeTimeout = setTimeout(() => {
+                        console.log("Snake detected for 3 seconds!");
+                        snakeAudio.play().then(() => {
+                            console.log("Snake audio played successfully");
+                        }).catch(error => {
+                            console.error("Error playing snake audio:", error);
+                        });
+                        snakeTimeout = null;
+                    }, 500);
+                }
+            } else if (prediction[i].className === "European Starlings" && prediction[i].probability > 0.90) {
+                starlingDetected = true;
+                if (!starlingTimeout) {
+                    console.log("Starling detected!");
+                    starlingTimeout = setTimeout(() => {
+                        console.log("Starling detected for 3 seconds!");
+                        starlingAudio.play().then(() => {
+                            console.log("Starling audio played successfully");
+                        }).catch(error => {
+                            console.error("Error playing starling audio:", error);
+                        });
+                        starlingTimeout = null;
+                    }, 500);
+                }
+            }
+        }
+
+        if (!squirrelDetected) {
+            if (squirrelTimeout) {
+                clearTimeout(squirrelTimeout);
+                squirrelTimeout = null;
+                console.log("Squirrel detection reset");
+            }
+        }
+        if (!snakeDetected) {
+            if (snakeTimeout) {
+                clearTimeout(snakeTimeout);
+                snakeTimeout = null;
+                console.log("Snake detection reset");
+            }
+        }
+        if (!starlingDetected) {
+            if (starlingTimeout) {
+                clearTimeout(starlingTimeout);
+                starlingTimeout = null;
+                console.log("Starling detection reset");
+            }
+        }
+    }
+</script>
